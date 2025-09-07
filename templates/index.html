@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl game-card p-8 max-w-md w-full text-center">
+        <!-- Akinator-style image -->
+        <div class="mb-8">
+            <div
+                class="w-32 h-32 mx-auto bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+                <span class="text-6xl">🧞‍♂️</span>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Guessme.ai</h1>
+            <p class="text-gray-600">Choose your adventure!</p>
+        </div>
+
+        <!-- Game mode button -->
+        <div class="space-y-4">
+            <button onclick="startFlow2()"
+                class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition duration-300 transform hover:scale-105">
+                <div class="flex items-center justify-center space-x-3">
+                    <span class="text-2xl">🎭</span>
+                    <span>Start Celebrity Guessing Game</span>
+                </div>
+                <p class="text-blue-100 text-sm mt-1">Think of a celebrity and I'll try to guess it!</p>
+            </button>
+        </div>
+
+        <div class="mt-8 text-gray-500 text-sm">
+            <p>🎮 Fun • 🧠 Challenging • ✨ AI-Powered</p>
+        </div>
+
+        <!-- Credit Section -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <p class="text-sm text-gray-600">
+                Built with ❤️ by <a href="https://naveenvenkat.online/" target="_blank" rel="noopener noreferrer"
+                    class="text-blue-600 hover:text-blue-800 font-medium hover:underline">
+                    Naveen Venkat
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function startFlow2() {
+        showLoading('loadingOverlay');
+        const result = await makeRequest('/start_game', { flow: 2 });
+        if (result) {
+            currentSessionId = result.session_id;
+            window.location.href = '/flow2';
+        }
+    }
+</script>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
+        <p class="text-gray-600">Starting game...</p>
+    </div>
+</div>
+{% endblock %}

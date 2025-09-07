@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Flow 2 - AI Guesses Your Celebrity | Guessme.ai{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl game-card p-8 max-w-2xl w-full">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">🎭 I'll Guess Your Celebrity</h1>
+            <button onclick="quitGame()"
+                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-300">
+                Quit Game
+            </button>
+        </div>
+
+        <!-- Game Status -->
+        <div id="gameStatus" class="text-center mb-6">
+            <div
+                class="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-3">
+                <span class="text-2xl">🎭</span>
+            </div>
+            <p class="text-gray-600">Think of any celebrity and I'll try to guess who it is!</p>
+            <p class="text-sm text-gray-500 mt-2">I'll ask 5 basic questions, then make strategic guesses with
+                follow-ups.</p>
+        </div>
+
+        <!-- API Call Counter -->
+        <div id="apiCounter" class="hidden text-center mb-4">
+            <div class="bg-blue-50 rounded-lg p-3">
+                <span class="text-blue-600 font-semibold">AI Guesses Used: <span id="apiCount">0</span>/10</span>
+            </div>
+        </div>
+
+        <!-- Confirmation Step -->
+        <div id="confirmationCard" class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-6">
+            <div class="text-center">
+                <div class="text-2xl mb-3">🤔</div>
+                <div id="confirmationText" class="text-lg font-medium text-gray-800 mb-6">Think of a celebrity in your
+                    mind, then click Yes when ready!</div>
+
+                <!-- Confirmation Buttons -->
+                <div class="flex space-x-4 justify-center">
+                    <button onclick="answerQuestion('yes')"
+                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        ✅ Yes, I'm Ready!
+                    </button>
+                    <button onclick="answerQuestion('no')"
+                        class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        ❌ Not Yet
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Display -->
+        <div id="questionCard" class="hidden bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
+            <div class="text-center">
+                <div id="questionNumber" class="text-sm text-blue-600 font-semibold mb-2"></div>
+                <div id="questionText" class="text-lg font-medium text-gray-800 mb-6"></div>
+
+                <!-- Answer Buttons -->
+                <div class="flex space-x-4 justify-center">
+                    <button onclick="answerQuestion('yes')"
+                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        ✅ Yes
+                    </button>
+                    <button onclick="answerQuestion('no')"
+                        class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        ❌ No
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Guess Display -->
+        <div id="guessCard" class="hidden bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 mb-6">
+            <div class="text-center">
+                <div class="text-2xl mb-3">🎯</div>
+                <div class="text-lg font-medium text-gray-800 mb-2">I think it's...</div>
+                <div id="guessText" class="text-2xl font-bold text-orange-600 mb-6"></div>
+
+                <!-- Guess Response Buttons -->
+                <div class="flex space-x-4 justify-center">
+                    <button onclick="respondToGuess(true)"
+                        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        🎉 Correct!
+                    </button>
+                    <button onclick="respondToGuess(false)"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                        🤔 Wrong, Keep Trying
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Display -->
+        <div id="gameOverCard" class="hidden text-center mt-6">
+            <div class="text-6xl mb-4">🎉</div>
+            <div id="gameOverMessage" class="text-xl font-bold text-gray-800 mb-6"></div>
+            <button onclick="goHome()"
+                class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                🏠 Play Again
+            </button>
+        </div>
+
+        <!-- Start Button -->
+        <div id="startCard" class="text-center">
+            <button onclick="startGame()"
+                class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-4 px-8 rounded-xl transition duration-300 transform hover:scale-105">
+                🚀 Start Celebrity Guessing Game
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">AI is thinking...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let sessionId = null;
+    let currentPhase = 'start';
+    let isFollowUpMode = false;
+
+    async function startGame() {
+        document.getElementById('startCard').classList.add('hidden');
+        document.getElementById('loading').classList.remove('hidden');
+
+        const result = await makeRequest('/start_game', { flow: 2 });
+        if (result) {
+            sessionId = result.session_id;
+            currentPhase = result.phase || 'confirmation';
+
+            if (result.question) {
+                showConfirmation(result.question);
+            }
+        }
+
+        document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showConfirmation(question) {
+        document.getElementById('confirmationText').textContent = question;
+        document.getElementById('confirmationCard').classList.remove('hidden');
+        document.getElementById('questionCard').classList.add('hidden');
+        document.getElementById('guessCard').classList.add('hidden');
+    }
+
+    function showQuestion(question, questionNumber, phase) {
+        document.getElementById('questionText').textContent = question;
+        document.getElementById('questionNumber').textContent = `Question ${questionNumber}`;
+        document.getElementById('questionCard').classList.remove('hidden');
+        document.getElementById('confirmationCard').classList.add('hidden');
+        document.getElementById('guessCard').classList.add('hidden');
+
+        // Show API counter if in AI guessing phase
+        if (phase === 'ai_guessing') {
+            document.getElementById('apiCounter').classList.remove('hidden');
+        }
+    }
+
+    async function answerQuestion(answer) {
+        hideAllCards();
+        document.getElementById('loading').classList.remove('hidden');
+
+        let endpoint = '/answer_question';
+        if (isFollowUpMode) {
+            endpoint = '/continue_questions';
+        }
+
+        const result = await makeRequest(endpoint, {
+            session_id: sessionId,
+            answer: answer
+        });
+
+        document.getElementById('loading').classList.add('hidden');
+
+        if (result) {
+            if (result.game_over) {
+                showGameOver(result.message);
+            } else if (result.type === 'question') {
+                showQuestion(result.question, result.question_number, result.phase);
+            } else if (result.type === 'guess') {
+                showAIGuess(result.guess);
+                if (result.api_calls_used) {
+                    updateApiCounter(result.api_calls_used);
+                }
+            } else if (result.type === 'ready_for_guess') {
+                // All 3 follow-up questions answered, trigger next guess
+                setTimeout(() => {
+                    triggerNextGuess();
+                }, 1000);
+            } else if (result.error) {
+                alert('Error: ' + result.details);
+            }
+        }
+    }
+
+    async function triggerNextGuess() {
+        document.getElementById('loading').classList.remove('hidden');
+
+        const result = await makeRequest('/answer_question', {
+            session_id: sessionId,
+            answer: 'continue'  // Trigger the next guess cycle
+        });
+
+        document.getElementById('loading').classList.add('hidden');
+
+        if (result && result.type === 'guess') {
+            showAIGuess(result.guess);
+            if (result.api_calls_used) {
+                updateApiCounter(result.api_calls_used);
+            }
+        }
+    }
+
+    function showAIGuess(guess) {
+        document.getElementById('guessText').textContent = guess;
+        document.getElementById('guessCard').classList.remove('hidden');
+        hideOtherCards(['guessCard']);
+        isFollowUpMode = false; // Reset for potential follow-up questions
+    }
+
+    async function respondToGuess(isCorrect) {
+        hideAllCards();
+        document.getElementById('loading').classList.remove('hidden');
+
+        const result = await makeRequest('/respond_to_ai_guess', {
+            session_id: sessionId,
+            is_correct: isCorrect
+        });
+
+        document.getElementById('loading').classList.add('hidden');
+
+        if (result) {
+            if (result.game_over) {
+                showGameOver(result.message);
+            } else if (result.type === 'question') {
+                showQuestion(result.question, result.question_number);
+                isFollowUpMode = true; // Now in follow-up question mode
+            }
+        }
+    }
+
+    function updateApiCounter(count) {
+        document.getElementById('apiCount').textContent = count;
+        document.getElementById('apiCounter').classList.remove('hidden');
+
+        // Change color as we get closer to limit
+        const counter = document.getElementById('apiCounter').querySelector('div');
+        if (count >= 8) {
+            counter.className = 'bg-red-50 rounded-lg p-3';
+            counter.querySelector('span').className = 'text-red-600 font-semibold';
+        } else if (count >= 5) {
+            counter.className = 'bg-yellow-50 rounded-lg p-3';
+            counter.querySelector('span').className = 'text-yellow-600 font-semibold';
+        }
+    }
+
+    function hideAllCards() {
+        document.getElementById('confirmationCard').classList.add('hidden');
+        document.getElementById('questionCard').classList.add('hidden');
+        document.getElementById('guessCard').classList.add('hidden');
+    }
+
+    function hideOtherCards(except = []) {
+        const cards = ['confirmationCard', 'questionCard', 'guessCard'];
+        cards.forEach(card => {
+            if (!except.includes(card)) {
+                document.getElementById(card).classList.add('hidden');
+            }
+        });
+    }
+
+    function showGameOver(message) {
+        hideAllCards();
+        document.getElementById('gameOverMessage').textContent = message;
+        document.getElementById('gameOverCard').classList.remove('hidden');
+    }
+
+    // Hide game elements initially
+    hideAllCards();
+</script>
+
+<!-- Game Page Credit Section -->
+<div class="mt-8 pt-6 border-t border-gray-200 text-center">
+    <p class="text-sm text-gray-600">
+        Built with ❤️ by <a href="https://naveenvenkat.online/" target="_blank" rel="noopener noreferrer"
+            class="text-blue-600 hover:text-blue-800 font-medium hover:underline">
+            Naveen Venkat
+        </a>
+    </p>
+    <p class="text-xs text-gray-500 mt-1">Advanced AI-Powered Celebrity Guessing</p>
+</div>
+{% endblock %}
